@@ -1,31 +1,31 @@
-"""
-ddg/utils.py
-============
-Shared utilities: logging setup that tees stdout/stderr to a file.
-"""
-import os, sys
+"""ddg/utils.py - automatic console logging so every run leaves a raw log."""
+import sys, os, datetime
 
 
-class _Tee:
-    def __init__(self, *streams):
-        self.streams = streams
+class Tee:
+    """Duplicate stdout to a log file. Guarantees a raw training log exists."""
+    def __init__(self, path):
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        self.file = open(path, "a", buffering=1)
+        self.stdout = sys.stdout
+        self.file.write(f"\n===== run started {datetime.datetime.now()} =====\n")
 
-    def write(self, data):
-        for s in self.streams:
-            s.write(data)
+    def write(self, m):
+        self.stdout.write(m)
+        self.file.write(m)
 
     def flush(self):
-        for s in self.streams:
-            s.flush()
+        self.stdout.flush()
+        self.file.flush()
 
-    def isatty(self):
-        return False
+    def close(self):
+        try:
+            self.file.close()
+        except Exception:
+            pass
 
 
-def start_logging(run_dir: str, fname: str = "train_log.txt") -> str:
-    """Redirect stdout and stderr to both the terminal and a log file."""
-    log_path = os.path.join(run_dir, fname)
-    log_file = open(log_path, "a", buffering=1)
-    sys.stdout = _Tee(sys.__stdout__, log_file)
-    sys.stderr = _Tee(sys.__stderr__, log_file)
-    return log_path
+def start_logging(out_dir, name="train_log.txt"):
+    tee = Tee(os.path.join(out_dir, name))
+    sys.stdout = tee
+    return tee
