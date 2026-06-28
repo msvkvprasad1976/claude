@@ -73,7 +73,13 @@ class DDGPointNet2(nn.Module):
         self._reg_batch: Optional[torch.Tensor] = None
 
     def forward(self, data: Data) -> torch.Tensor:
-        x0, pos0, batch0 = None, data.pos, data.batch
+        pos0, batch0 = data.pos, data.batch
+        # SA1 expects 6 channels (XYZ + normals). Use normals if present,
+        # otherwise fall back to positions as a proxy so the model still runs.
+        if hasattr(data, 'normal') and data.normal is not None:
+            x0 = torch.cat([data.pos, data.normal], dim=-1)
+        else:
+            x0 = torch.cat([data.pos, data.pos], dim=-1)
         x1, pos1, batch1 = self.sa1(x0, pos0, batch0)
         # expose the per-point feature map at the SA1 resolution
         self._reg_x, self._reg_pos, self._reg_batch = x1, pos1, batch1
