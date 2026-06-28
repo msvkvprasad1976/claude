@@ -103,7 +103,7 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--data_root", default="./data/ModelNet40")
     p.add_argument("--out_dir", default="./outputs/modelnet40")
-    p.add_argument("--num_workers", type=int, default=4)
+    p.add_argument("--num_workers", type=int, default=2)
     p.add_argument("--batch_size", type=int, default=32)
     p.add_argument("--dropout", type=float, default=0.5)
     p.add_argument("--lr", type=float, default=1e-3)

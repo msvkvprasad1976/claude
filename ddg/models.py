@@ -74,12 +74,13 @@ class DDGPointNet2(nn.Module):
 
     def forward(self, data: Data) -> torch.Tensor:
         pos0, batch0 = data.pos, data.batch
-        # SA1 expects 6 channels (XYZ + normals). Use normals if present,
-        # otherwise fall back to positions as a proxy so the model still runs.
+        # PointNetConv prepends relative-pos (3 ch) to x, so local_nn sees
+        # x_dim + 3 channels. SA1 local_nn starts at [3+3=6,...], meaning x
+        # must be 3-dimensional. Use normals when present; fall back to pos.
         if hasattr(data, 'normal') and data.normal is not None:
-            x0 = torch.cat([data.pos, data.normal], dim=-1)
+            x0 = data.normal          # (N, 3)
         else:
-            x0 = torch.cat([data.pos, data.pos], dim=-1)
+            x0 = data.pos             # (N, 3) fallback
         x1, pos1, batch1 = self.sa1(x0, pos0, batch0)
         # expose the per-point feature map at the SA1 resolution
         self._reg_x, self._reg_pos, self._reg_batch = x1, pos1, batch1

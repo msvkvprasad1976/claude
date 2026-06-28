@@ -44,7 +44,8 @@ class Trainer:
             batch = batch.to(self.device)
             self.optimizer.zero_grad()
             pred = self.model(batch)
-            task_loss = self.criterion(pred, batch.y)
+            y = batch.y.view(-1)      # (B,1) → (B,) for CrossEntropyLoss / accuracy
+            task_loss = self.criterion(pred, y)
             if self.use_ddg and ddg_fn is not None:
                 X, L, areas = ddg_fn(self.model, batch)
                 total, e_d, e_w = self.regularizer(X, task_loss, L, areas)
@@ -54,7 +55,7 @@ class Trainer:
             total.backward()
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
             self.optimizer.step()
-            tl += total.item(); tm += metric_fn(pred.detach(), batch.y); nb += 1
+            tl += total.item(); tm += metric_fn(pred.detach(), y); nb += 1
         return {"loss": tl / nb, "metric": tm / nb,
                 "e_dirichlet": ed / nb, "e_willmore": ew / nb}
 
@@ -65,8 +66,9 @@ class Trainer:
         for batch in tqdm(loader, desc="  Eval ", leave=False):
             batch = batch.to(self.device)
             pred = self.model(batch)
-            tl += self.criterion(pred, batch.y).item()
-            tm += metric_fn(pred, batch.y); nb += 1
+            y = batch.y.view(-1)
+            tl += self.criterion(pred, y).item()
+            tm += metric_fn(pred, y); nb += 1
         return {"loss": tl / nb, "metric": tm / nb}
 
     def fit(self, train_loader, val_loader, metric_fn, metric_name="metric",
